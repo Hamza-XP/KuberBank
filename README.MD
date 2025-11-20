@@ -1,5 +1,5 @@
 # 🏦 KuberBank — Kubernetes-Native Banking Platform  
-**⚠️ Project currently under development 🚧**  
+⚠️ **Project currently under development 🚧**  
 
 KuberBank is a **cloud-native, GitOps-driven banking application** designed to showcase real-world **DevOps, SRE, and Kubernetes** production patterns.  
 This project demonstrates a fully automated, highly available, and secure infrastructure stack suitable for financial/transactional workloads.
@@ -14,8 +14,6 @@ This project demonstrates a fully automated, highly available, and secure infras
 - Progressive rollouts & automatic sync  
 - SealedSecrets / ExternalSecrets for secure configurations  
 
----
-
 ### 🛠 Continuous Integration with **Jenkins**
 - Container image build  
 - Unit/integration tests  
@@ -23,8 +21,6 @@ This project demonstrates a fully automated, highly available, and secure infras
 - Push to container registry  
 - Database migrations (Flyway)  
 - Semantic version tagging  
-
----
 
 ### 🗄 High Availability PostgreSQL (Operator)
 Using **CrunchyData** or **Zalando** PostgreSQL Operator:
@@ -35,15 +31,11 @@ Using **CrunchyData** or **Zalando** PostgreSQL Operator:
 - WAL archiving → S3  
 - Scheduled backups & PITR (Point-In-Time Recovery)  
 
----
-
 ### 💨 PgBouncer (Connection Pooling)
 - Prevents DB overload  
 - Pooled connections for microservices  
 - Runs inside the same namespace  
 - Integrated health probes  
-
----
 
 ### 📊 Observability: Prometheus + Grafana
 - `pg_exporter` for PostgreSQL metrics  
@@ -54,16 +46,12 @@ Using **CrunchyData** or **Zalando** PostgreSQL Operator:
   - Disk usage  
   - WAL archiving failures  
   - Pod restarts  
-
----
-
+  
 ### ☁ Automated S3 Backups
 - Scheduled base backups  
 - Continuous WAL shipping  
 - Disaster recovery workflow  
 - Restore-from-backup documentation  
-
----
 
 ### 🛡 Security Layer
 - Ingress with TLS termination  
@@ -78,46 +66,46 @@ Using **CrunchyData** or **Zalando** PostgreSQL Operator:
 graph LR
 
     subgraph UserSide["🌐 User"]
-        U1[Browser / Frontend]
+        U1["Browser / Frontend"]
     end
 
     subgraph Ingress["🔐 Ingress + TLS"]
-        IN[NGINX Ingress Controller]
+        IN["NGINX Ingress Controller"]
     end
 
     subgraph AppNS["🏦 KuberBank Namespace"]
-        APP[Frontend + Backend Deployment\nDockerized App]
+        APP["Frontend + Backend Deployment<br/>Dockerized App"]
 
-        PGB[PgBouncer\nConnection Pooler]
+        PGB["PgBouncer<br/>Connection Pooler"]
 
         subgraph PGOPS["🗄 PostgreSQL Operator (Crunchy / Zalando)"]
-            PGM[PostgreSQL Primary]
-            PGR[(PostgreSQL Replica)]
+            PGM["PostgreSQL Primary"]
+            PGR["PostgreSQL Replica"]
         end
 
         subgraph BACKUP["📦 S3 Backups"]
-            S3[(AWS S3 Bucket)]
+            S3["AWS S3 Bucket"]
         end
 
-        EXS[External Secrets\n(Vault)]
+        EXS["External Secrets (Vault)"]
     end
 
     subgraph CI["🛠 Jenkins CI"]
-        J1[Build & Test]
-        J2[Security Scan]
-        J3[Push to Registry]
-        J4[DB Migrations]
-        J5[Tag Release]
+        J1["Build & Test"]
+        J2["Security Scan"]
+        J3["Push to Registry"]
+        J4["DB Migrations"]
+        J5["Tag Release"]
     end
 
     subgraph GitOps["🌐 ArgoCD"]
-        AR[App-of-Apps Sync]
+        AR["App-of-Apps Sync"]
     end
 
     subgraph MON["📊 Monitoring Stack"]
-        PROM[Prometheus]
-        GRAF[Grafana]
-        EXP[pg_exporter]
+        PROM["Prometheus"]
+        GRAF["Grafana"]
+        EXP["pg_exporter"]
     end
 
     %% Flows
