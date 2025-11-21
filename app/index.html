@@ -5,17 +5,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="description" content="KuberBank - Kubernetes-native banking demo with GitOps-driven CI/CD pipelines, monitoring with Prometheus & Grafana, and logging with Loki." />
+    <meta name="keywords" content="kubernetes, gitops, banking, demo, prometheus, grafana, cloud-native" />
     <link rel="shortcut icon" type="image/png" href="img/icon.png" />
-    <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="dashboard.css" />
     <title>KuberBank | When Kubernetes meets Banking</title>
   </head>
 
   <body>
+    <!-- Header -->
     <header class="header">
       <nav class="nav">    
         <div class="nav__brand">
-          <img src="img/logo.png" alt="Bankist logo" class="nav__logo" id="logo" />
+          <img src="img/logo.png" alt="KuberBank logo" class="nav__logo" id="logo" />
           <span class="nav__title">KuberBank</span>
         </div>
         <ul class="nav__links">
@@ -29,13 +33,15 @@
             <a class="nav__link" href="#section--3">Testimonials</a>
           </li>
           <li class="nav__item">
-            <a class="signup nav__link nav__link--btn btn--show-modal" href="#" class="login nav__link--btn">Log in</a>
+            <a class="signup nav__link nav__link--btn btn--show-modal" href="#">Open account</a>
           </li>
         </ul>
       </nav>
+      
       <div class="header__title">
         <div class="header__title--heading">
-          <h1> When <!-- Green highlight effect -->
+          <h1>
+            When <!-- Green highlight effect -->
             <span class="highlight">Kubernetes</span> meets <span class="highlight">banking</span>
           </h1>
           <h4>Kubernetes-native banking demo with GitOps-driven CI/CD pipelines, monitoring with Prometheus & Grafana, and logging with Loki.</h4>
@@ -49,10 +55,14 @@
         </div>
       </div>
     </header>
+
+    <!-- Features Section -->
     <section class="section" id="section--1">
       <div class="section__title">
         <h2 class="section__description">Features</h2>
-        <h3 class="section__header"> Everything you need in a cloud-native banking platform and more. </h3>
+        <h3 class="section__header">
+          Everything you need in a cloud-native banking platform and more.
+        </h3>
       </div>
       <div class="features">
         <div class="features__box">
@@ -66,9 +76,12 @@
               </svg>
             </div>
             <h5 class="features__header">100% Cloud-Native</h5>
-            <p> Built entirely on Kubernetes with containerized microservices, auto-scaling capabilities, and seamless deployment across any cloud provider or on-premises infrastructure. </p>
+            <p>
+              Built entirely on Kubernetes with containerized microservices, auto-scaling capabilities, and seamless deployment across any cloud provider or on-premises infrastructure.
+            </p>
           </div>
         </div>
+        
         <div class="features__box">
           <div class="features__feature">
             <div class="features__icon">
@@ -77,12 +90,15 @@
               </svg>
             </div>
             <h5 class="features__header">GitOps-Driven CI/CD</h5>
-            <p> Complete GitOps workflow with automated testing, building, and deployment pipelines. Track every change with full observability and instant rollbacks when needed. </p>
+            <p>
+              Complete GitOps workflow with automated testing, building, and deployment pipelines. Track every change with full observability and instant rollbacks when needed.
+            </p>
           </div>
           <div class="features__box--image">
             <img src="img/grow-lazy.jpg" data-src="img/grow.jpg" alt="GitOps Pipeline" class="features__img lazy-img" />
           </div>
         </div>
+        
         <div class="features__box">
           <div class="features__box--image">
             <img src="img/card-lazy.jpg" data-src="img/card.jpg" alt="Monitoring Dashboard" class="features__img lazy-img" />
@@ -94,104 +110,149 @@
               </svg>
             </div>
             <h5 class="features__header">Complete Observability</h5>
-            <p> Comprehensive monitoring with Prometheus metrics, beautiful Grafana dashboards, and centralized logging with Loki. Full visibility into your banking platform's health. </p>
+            <p>
+              Comprehensive monitoring with Prometheus metrics, beautiful Grafana dashboards, and centralized logging with Loki. Full visibility into your banking platform's health.
+            </p>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Operations Section -->
     <section class="section" id="section--2">
       <div class="section__title">
         <h2 class="section__description">Operations</h2>
-        <h3 class="section__header"> DevOps excellence made simple, yet powerful. </h3>
+        <h3 class="section__header">
+          DevOps excellence made simple, yet powerful.
+        </h3>
       </div>
       <div class="operations">
         <div class="operations__tab-container">
           <button class="btn operations__tab operations__tab--1 operations__tab--active" data-tab="1">
-            <span>01</span>Instant Deployments </button>
+            <span>01</span>Instant Deployments
+          </button>
           <button class="btn operations__tab operations__tab--2" data-tab="2">
-            <span>02</span>Auto Scaling </button>
+            <span>02</span>Auto Scaling
+          </button>
           <button class="btn operations__tab operations__tab--3" data-tab="3">
-            <span>03</span>Monitoring & Alerts </button>
+            <span>03</span>Monitoring & Alerts
+          </button>
         </div>
+        
         <div class="operations__content operations__content--1 operations__content--active">
           <div class="operations__icon operations__icon--1">
             <svg>
               <use xlink:href="img/icons.svg#icon-upload"></use>
             </svg>
           </div>
-          <h5 class="operations__header"> Deploy anywhere, instantly! GitOps-powered, zero-downtime deployments. </h5>
-          <p> Push to Git and watch your changes automatically flow through our GitOps pipeline. Kubernetes handles the orchestration while Helm manages your releases. Blue-green deployments ensure zero downtime for your users. </p>
+          <h5 class="operations__header">
+            Deploy anywhere, instantly! GitOps-powered, zero-downtime deployments.
+          </h5>
+          <p>
+            Push to Git and watch your changes automatically flow through our GitOps pipeline. Kubernetes handles the orchestration while Helm manages your releases. Blue-green deployments ensure zero downtime for your users.
+          </p>
         </div>
+        
         <div class="operations__content operations__content--2">
           <div class="operations__icon operations__icon--2">
             <svg>
               <use xlink:href="img/icons.svg#icon-home"></use>
             </svg>
           </div>
-          <h5 class="operations__header"> Scale up or down automatically based on real-time demand. </h5>
-          <p> Horizontal Pod Autoscaler (HPA) and Vertical Pod Autoscaler (VPA) work together to ensure optimal resource utilization. Your banking platform scales seamlessly during peak hours and saves costs during low traffic. </p>
+          <h5 class="operations__header">
+            Scale up or down automatically based on real-time demand.
+          </h5>
+          <p>
+            Horizontal Pod Autoscaler (HPA) and Vertical Pod Autoscaler (VPA) work together to ensure optimal resource utilization. Your banking platform scales seamlessly during peak hours and saves costs during low traffic.
+          </p>
         </div>
+        
         <div class="operations__content operations__content--3">
           <div class="operations__icon operations__icon--3">
             <svg>
               <use xlink:href="img/icons.svg#icon-user-x"></use>
             </svg>
           </div>
-          <h5 class="operations__header"> Complete visibility with Prometheus, Grafana, and Loki integration. </h5>
-          <p> Real-time metrics, beautiful dashboards, and intelligent alerting keep you informed. Distributed tracing helps debug issues across microservices while centralized logging with Loki provides comprehensive audit trails. </p>
+          <h5 class="operations__header">
+            Complete visibility with Prometheus, Grafana, and Loki integration.
+          </h5>
+          <p>
+            Real-time metrics, beautiful dashboards, and intelligent alerting keep you informed. Distributed tracing helps debug issues across microservices while centralized logging with Loki provides comprehensive audit trails.
+          </p>
         </div>
       </div>
     </section>
+
+    <!-- Testimonials Section -->
     <section class="section" id="section--3">
       <div class="section__title section__title--testimonials">
         <h2 class="section__description">Not sure yet?</h2>
-        <h3 class="section__header"> Thousands of developers are already using KuberBank for learning. </h3>
+        <h3 class="section__header">
+          Thousands of developers are already using KuberBank for learning.
+        </h3>
       </div>
       <div class="slider">
         <div class="slide slide--1">
           <div class="testimonial">
-            <h5 class="testimonial__header"> Finally, a realistic Kubernetes demo </h5>
-            <blockquote class="testimonial__text"> Most demos are too simple or too complex. KuberBank strikes the perfect balance. The GitOps pipeline, monitoring stack, and banking features work together seamlessly. This is how modern fintech should be built. </blockquote>
+            <h5 class="testimonial__header">Finally, a realistic Kubernetes demo</h5>
+            <blockquote class="testimonial__text">
+              Most demos are too simple or too complex. KuberBank strikes the perfect balance. The GitOps pipeline, monitoring stack, and banking features work together seamlessly. This is how modern fintech should be built.
+            </blockquote>
             <address class="testimonial__author">
-              <img src="img/user-3.jpg" alt="" class="testimonial__photo" />
+              <img src="img/user-3.jpg" alt="Michael Rodriguez" class="testimonial__photo" />
               <h6 class="testimonial__name">Michael Rodriguez</h6>
               <p class="testimonial__location">Cloud Architect, Toronto</p>
             </address>
           </div>
         </div>
+        
         <div class="slide slide--2">
           <div class="testimonial">
             <h5 class="testimonial__header">Perfect for learning Kubernetes!</h5>
-            <blockquote class="testimonial__text"> This demo application taught me more about Kubernetes, GitOps, and observability than any course could. The real-world banking scenario makes it easy to understand complex concepts. The monitoring setup with Prometheus and Grafana is exactly what I needed to see in production. </blockquote>
+            <blockquote class="testimonial__text">
+              This demo application taught me more about Kubernetes, GitOps, and observability than any course could. The real-world banking scenario makes it easy to understand complex concepts. The monitoring setup with Prometheus and Grafana is exactly what I needed to see in production.
+            </blockquote>
             <address class="testimonial__author">
-              <img src="img/user-1.jpg" alt="" class="testimonial__photo" />
+              <img src="img/user-1.jpg" alt="Alex Chen" class="testimonial__photo" />
               <h6 class="testimonial__name">Alex Chen</h6>
               <p class="testimonial__location">DevOps Engineer, Seattle</p>
             </address>
           </div>
         </div>
+        
         <div class="slide slide--3">
           <div class="testimonial">
-            <h5 class="testimonial__header"> The complete cloud-native banking solution </h5>
-            <blockquote class="testimonial__text"> KuberBank showcases everything I wanted to learn about modern banking platforms. From microservices architecture to GitOps workflows, it's all here. The Loki logging integration is brilliant for debugging distributed systems. </blockquote>
+            <h5 class="testimonial__header">The complete cloud-native banking solution</h5>
+            <blockquote class="testimonial__text">
+              KuberBank showcases everything I wanted to learn about modern banking platforms. From microservices architecture to GitOps workflows, it's all here. The Loki logging integration is brilliant for debugging distributed systems.
+            </blockquote>
             <address class="testimonial__author">
-              <img src="img/user-2.jpg" alt="" class="testimonial__photo" />
+              <img src="img/user-2.jpg" alt="Sarah Johnson" class="testimonial__photo" />
               <h6 class="testimonial__name">Sarah Johnson</h6>
               <p class="testimonial__location">Platform Engineer, London</p>
             </address>
           </div>
         </div>
+        
         <button class="slider__btn slider__btn--left">&larr;</button>
         <button class="slider__btn slider__btn--right">&rarr;</button>
         <div class="dots"></div>
       </div>
     </section>
+
+    <!-- Sign Up Section -->
     <section class="section section--sign-up">
       <div class="section__title">
-        <h3 class="section__header"> The best day to start learning Kubernetes was yesterday. The second best is today! </h3>
+        <h3 class="section__header">
+          The best day to start learning Kubernetes was yesterday. The second best is today!
+        </h3>
       </div>
-      <a href="https://github.com/Hamza-XP/KuberBank" class="login nav__link--btn btn" target="_blank" rel="noopener noreferrer">Explore the GitHub repo now!</a>
+      <a href="https://github.com/Hamza-XP/KuberBank" class="login nav__link--btn btn" target="_blank" rel="noopener noreferrer">
+        Explore the GitHub repo now!
+      </a>
     </section>
+
+    <!-- Footer -->
     <footer class="footer">
       <ul class="footer__nav">
         <li class="footer__item">
@@ -201,7 +262,7 @@
           <a class="footer__link" href="#">Documentation</a>
         </li>
         <li class="footer__item">
-          <a class="footer__link" href="#">GitHub</a>
+          <a class="footer__link" href="https://github.com/Hamza-XP/KuberBank" target="_blank">GitHub</a>
         </li>
         <li class="footer__item">
           <a class="footer__link" href="#">Architecture</a>
@@ -216,24 +277,33 @@
           <a class="footer__link" href="#">Contact</a>
         </li>
       </ul>
-      <img src="img/icon.png" alt="Logo" class="footer__logo" />
-      <p class="footer__copyright">Built by <a class="footer__link twitter-link" target="_blank" href="">Hamza Qureshi</a>. 2025 - Open Source Kubernetes Banking Demo </p>
+      <img src="img/icon.png" alt="KuberBank Logo" class="footer__logo" />
+      <p class="footer__copyright">
+        Built by <a class="footer__link twitter-link" target="_blank" href="https://github.com/Hamza-XP">Hamza Qureshi</a>. 
+        2025 - Open Source Kubernetes Banking Demo
+      </p>
     </footer>
+
+    <!-- Modal Window -->
     <div class="modal hidden">
       <button class="btn--close-modal">&times;</button>
-      <h2 class="modal__header"> Open your bank account <br /> in just <span class="highlight">5 minutes</span>
+      <h2 class="modal__header">
+        Open your bank account <br />
+        in just <span class="highlight">5 minutes</span>
       </h2>
       <form class="modal__form">
         <label>First Name</label>
-        <input type="text" />
+        <input type="text" required placeholder="John" />
         <label>Last Name</label>
-        <input type="text" />
+        <input type="text" required placeholder="Doe" />
         <label>Email Address</label>
-        <input type="email" />
+        <input type="email" required placeholder="john.doe@example.com" />
         <button class="btn">Next step &rarr;</button>
       </form>
     </div>
     <div class="overlay hidden"></div>
+
+    <!-- Scripts -->
     <script src="script.js"></script>
   </body>
 
