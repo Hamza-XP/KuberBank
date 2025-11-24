@@ -1,6 +1,6 @@
 # 🏦 KuberBank - Cloud-Native Banking Platform
 
-> A production-grade Kubernetes-native banking demo application showcasing GitOps, CI/CD, High-Availability PostgreSQL, comprehensive monitoring, and security best practices.
+Kubernetes-native banking application showcasing GitOps, CI/CD, High-Availability PostgreSQL, comprehensive monitoring, and security best practices.
 **🚧 Project currently under development 🚧**
 
 ---
