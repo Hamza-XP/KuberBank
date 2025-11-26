@@ -21,6 +21,10 @@ DB_NAME="${TEST_DB_NAME:-kuberbank_test}"
 DB_USER="${TEST_DB_USER:-bankuser}"
 DB_PASSWORD="${TEST_DB_PASSWORD:-testpassword}"
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 log() {
     echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1"
 }
@@ -96,26 +100,35 @@ setup_test_database() {
     
     log "Test database created: $DB_NAME"
     
-    # Run migrations
+    # Run migrations - use absolute paths from project root
     log "Running migrations..."
-    for migration in database/migrations/*.sql; do
-        if [ -f "$migration" ]; then
-            log "  → $(basename "$migration")"
-            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-                -f "$migration" &> /dev/null
-        fi
-    done
+    local migrations_dir="$PROJECT_ROOT/database/migrations"
+    if [ -d "$migrations_dir" ]; then
+        for migration in "$migrations_dir"/*.sql; do
+            if [ -f "$migration" ]; then
+                log "  → $(basename "$migration")"
+                psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+                    -f "$migration" &> /dev/null
+            fi
+        done
+    else
+        error "Migrations directory not found: $migrations_dir"
+        exit 1
+    fi
     
-    # Run functions
-    if [ -d "database/functions" ]; then
+    # Run functions - use absolute paths from project root
+    local functions_dir="$PROJECT_ROOT/database/functions"
+    if [ -d "$functions_dir" ]; then
         log "Loading database functions..."
-        for func in database/functions/*.sql; do
+        for func in "$functions_dir"/*.sql; do
             if [ -f "$func" ]; then
                 log "  → $(basename "$func")"
                 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
                     -f "$func" &> /dev/null
             fi
         done
+    else
+        warning "Functions directory not found: $functions_dir"
     fi
     
     log "Test database setup complete"
@@ -124,9 +137,15 @@ setup_test_database() {
 install_dependencies() {
     log "Installing Node.js dependencies..."
     
-    cd app/api
-    npm ci --silent
-    cd ../..
+    local api_dir="$PROJECT_ROOT/app/api"
+    if [ -d "$api_dir" ]; then
+        cd "$api_dir"
+        npm ci --silent
+        cd "$PROJECT_ROOT"
+    else
+        error "API directory not found: $api_dir"
+        exit 1
+    fi
     
     log "Dependencies installed"
 }
@@ -134,10 +153,16 @@ install_dependencies() {
 run_unit_tests() {
     log "Running unit tests..."
     
-    cd app/api
-    npm run test:unit
-    local exit_code=$?
-    cd ../..
+    local api_dir="$PROJECT_ROOT/app/api"
+    if [ -d "$api_dir" ]; then
+        cd "$api_dir"
+        npm run test:unit
+        local exit_code=$?
+        cd "$PROJECT_ROOT"
+    else
+        error "API directory not found: $api_dir"
+        exit 1
+    fi
     
     if [ $exit_code -eq 0 ]; then
         log "✓ Unit tests passed"
@@ -157,10 +182,16 @@ run_integration_tests() {
     export TEST_DB_USER="$DB_USER"
     export TEST_DB_PASSWORD="$DB_PASSWORD"
     
-    cd app/api
-    npm run test:integration
-    local exit_code=$?
-    cd ../..
+    local api_dir="$PROJECT_ROOT/app/api"
+    if [ -d "$api_dir" ]; then
+        cd "$api_dir"
+        npm run test:integration
+        local exit_code=$?
+        cd "$PROJECT_ROOT"
+    else
+        error "API directory not found: $api_dir"
+        exit 1
+    fi
     
     if [ $exit_code -eq 0 ]; then
         log "✓ Integration tests passed"
@@ -180,10 +211,16 @@ run_all_tests() {
     export TEST_DB_USER="$DB_USER"
     export TEST_DB_PASSWORD="$DB_PASSWORD"
     
-    cd app/api
-    npm test -- --coverage
-    local exit_code=$?
-    cd ../..
+    local api_dir="$PROJECT_ROOT/app/api"
+    if [ -d "$api_dir" ]; then
+        cd "$api_dir"
+        npm test -- --coverage
+        local exit_code=$?
+        cd "$PROJECT_ROOT"
+    else
+        error "API directory not found: $api_dir"
+        exit 1
+    fi
     
     if [ $exit_code -eq 0 ]; then
         log "✓ All tests passed"
@@ -197,7 +234,7 @@ cleanup() {
     log "Cleaning up..."
     
     # Optionally drop test database
-    if [ "$CLEANUP_DB" = "true" ]; then
+    if [ "${CLEANUP_DB:-true}" = "true" ]; then
         export PGPASSWORD="$DB_PASSWORD"
         psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres \
             -c "DROP DATABASE IF EXISTS $DB_NAME;" &> /dev/null || true
@@ -213,7 +250,8 @@ print_summary() {
     log "Test Type: $TEST_TYPE"
     log "Database: $DB_NAME@$DB_HOST:$DB_PORT"
     
-    if [ -f "app/api/coverage/coverage-summary.json" ]; then
+    local coverage_file="$PROJECT_ROOT/app/api/coverage/coverage-summary.json"
+    if [ -f "$coverage_file" ]; then
         log "Coverage report: app/api/coverage/index.html"
     fi
     
