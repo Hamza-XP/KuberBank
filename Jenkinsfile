@@ -113,7 +113,7 @@ pipeline {
         stage('Setup Test Database') {
             steps {
                 echo '========================================='
-                echo '   Setting up test database...'
+                echo '   Setting up test database...           '
                 echo '========================================='
                 sh '''
                     # Check if PostgreSQL is running
@@ -126,16 +126,20 @@ pipeline {
                     PGPASSWORD=${TEST_DB_PASSWORD} psql -h ${TEST_DB_HOST} -U ${TEST_DB_USER} -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DB_NAME};"
                     PGPASSWORD=${TEST_DB_PASSWORD} psql -h ${TEST_DB_HOST} -U ${TEST_DB_USER} -d postgres -c "CREATE DATABASE ${TEST_DB_NAME};"
                     
-                    # Run migrations
-                    for file in database/migrations/*.sql; do
-                        echo "Running migration: $file"
-                        PGPASSWORD=${TEST_DB_PASSWORD} psql -h ${TEST_DB_HOST} -U ${TEST_DB_USER} -d ${TEST_DB_NAME} -f "$file"
+                    # Run migrations - use absolute paths from workspace
+                    echo "Running migrations from: ${WORKSPACE}/database/migrations/"
+                    for file in ${WORKSPACE}/database/migrations/*.sql; do
+                        if [ -f "$file" ]; then
+                            echo "Running migration: $(basename "$file")"
+                            PGPASSWORD=${TEST_DB_PASSWORD} psql -h ${TEST_DB_HOST} -U ${TEST_DB_USER} -d ${TEST_DB_NAME} -f "$file"
+                        fi
                     done
                     
-                    # Run functions
-                    for file in database/functions/*.sql; do
+                    # Run functions - use absolute paths from workspace
+                    echo "Running functions from: ${WORKSPACE}/database/functions/"
+                    for file in ${WORKSPACE}/database/functions/*.sql; do
                         if [ -f "$file" ]; then
-                            echo "Running functions: $file"
+                            echo "Running functions: $(basename "$file")"
                             PGPASSWORD=${TEST_DB_PASSWORD} psql -h ${TEST_DB_HOST} -U ${TEST_DB_USER} -d ${TEST_DB_NAME} -f "$file"
                         fi
                     done
