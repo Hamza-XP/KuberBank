@@ -24,9 +24,9 @@ DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-}"
 # Script paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MIGRATIONS_DIR="${PROJECT_ROOT}/migrations"
-FUNCTIONS_DIR="${PROJECT_ROOT}/functions"
-SEEDS_DIR="${PROJECT_ROOT}/seeds"
+MIGRATIONS_DIR="${PROJECT_ROOT}/database/migrations"
+FUNCTIONS_DIR="${PROJECT_ROOT}/database/functions"
+SEEDS_DIR="${PROJECT_ROOT}/database/seeds"
 
 # Options
 SKIP_CREATE_DB="false"
