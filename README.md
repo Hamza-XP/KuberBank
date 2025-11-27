@@ -1,7 +1,7 @@
 # 🏦 KuberBank - Cloud-Native Banking Platform
 
-Kubernetes-native banking application showcasing GitOps, CI/CD, High-Availability PostgreSQL, comprehensive monitoring, and security best practices.
-**🚧 Project currently under development 🚧**
+Kubernetes-native banking platform with GitOps featuring ArgoCD & Jenkins CI pipelines for automated deployments, high-availability PostgreSQL, monitoring with Prometheus & Grafana.
+## 🚧 Project currently under development 🚧
 
 ---
 
@@ -108,40 +108,65 @@ graph LR
 
 ```
 KuberBank/
-├── app/
-│   ├── api/
-│   │   ├── server.js              # Node.js backend API
-│   │   └── package.json
-│   ├── index.html                  # Frontend
-│   ├── script.js                   # Frontend logic
-│   ├── style.css
-│   └── Dockerfile
-├── k8s/
-│   ├── postgres/
-│   │   ├── postgresql-cluster.yaml    # PostgreSQL operator config
-│   │   └── backup-cronjob.yaml        # S3 backup jobs
-│   ├── backend/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   └── hpa.yaml
-│   ├── frontend/
-│   │   └── deployment.yaml
-│   ├── monitoring/
-│   │   ├── prometheus-config.yaml
-│   │   ├── grafana-dashboards.yaml
-│   │   └── alertmanager.yaml
-│   ├── secrets/
-│   │   └── external-secrets.yaml
-│   └── network-policies/
-│       └── policies.yaml
-├── argocd/
-│   ├── app-of-apps.yaml
-│   └── applications/
-├── db/
+├── app/                                # Frontend & Backend Application
+│   ├── api/                            # Node.js Backend API
+│   │   ├── jest.config.js              # Jest testing configuration
+│   │   ├── jest.setup.js               # Test environment setup
+│   │   ├── package.json                # Node.js dependencies and scripts
+│   │   ├── server.js                   # Express.js server entry point
+│   │   └── __test__/                   # Unit and integration tests
+│   │       ├── api.test.js             # API endpoint tests
+│   │       └── integration.test.js     # Database integration tests
+│   ├── dashboard.css                   # Dashboard-specific styles
+│   ├── Dockerfile                      # Container image definition
+│   ├── img/...                         # Application images and icons
+│   ├── index.html                      # Main HTML entry point
+│   ├── sass/                           # Sass source files
+│   │   ├── base.scss                   # Base styles and variables
+│   │   ├── components.scss             # Reusable UI components
+│   │   ├── layout.scss                 # Layout and grid system
+│   │   └── main.scss                   # Main Sass entry point
+│   ├── script.js                       # Frontend JavaScript logic
+│   ├── style.css                       # Compiled CSS styles
+│   └── style.css.map                   # CSS source maps
+├── database/                           # Database schema and functions
+│   ├── functions/
+│   │   └── 001_banking_functions.sql   # PostgreSQL stored procedures
 │   └── migrations/
-│       └── 001_init.sql
-├── Jenkinsfile
-└── README.md
+│       └── 001_init_schema.sql         # Database schema migration
+├── docs/                               # Project documentation
+│   ├── database.md                     # Database architecture guide
+│   ├── jankins_setup.txt               # Jenkins configuration (typo: should be jenkins_setup.txt)
+│   └── testing.md                      # Testing strategy and guidelines
+├── scripts/                            # Automation and utility scripts
+│   ├── backup.sh                       # Database backup to S3
+│   ├── init_db.sh                      # Database initialization
+│   ├── restore.sh                      # Database restore from backup
+│   └── run-tests.sh                    # Test runner with database setup
+├── k8s/                                # Kubernetes manifests
+│   ├── postgres/                       # Database cluster configuration
+│   │   ├── postgresql-cluster.yaml     # PostgreSQL operator config
+│   │   └── backup-cronjob.yaml         # S3 backup jobs
+│   ├── backend/                        # Backend application deployment
+│   │   ├── deployment.yaml             # Backend pod specification
+│   │   ├── service.yaml                # Backend service definition
+│   │   └── hpa.yaml                    # Horizontal Pod Autoscaler config
+│   ├── frontend/                       # Frontend application deployment
+│   │   └── deployment.yaml             # Frontend pod specification
+│   ├── monitoring/                     # Observability stack
+│   │   ├── prometheus-config.yaml      # Metrics collection configuration
+│   │   ├── grafana-dashboards.yaml     # Monitoring dashboards
+│   │   └── alertmanager.yaml           # Alerting rules and routing
+│   ├── secrets/                        # Secret management
+│   │   └── external-secrets.yaml       # Vault/External Secrets integration
+│   └── network-policies/               # Security policies
+│       └── policies.yaml               # Zero-trust network policies
+├── argocd/                             # GitOps configuration
+│   ├── app-of-apps.yaml                # ArgoCD ApplicationSet for managing all apps
+│   └── applications/                   # Individual ArgoCD Application manifests
+├── Jenkinsfile                         # CI/CD pipeline definition
+├── LICENSE                             # Project license
+└── README.md                           # Project overview and setup guide
 ```
 
 ## 🚀 Quick Start
@@ -405,15 +430,6 @@ python -m http.server 8000
 ## 📄 License
 
 This project is licensed under the MIT License - see LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [Zalando PostgreSQL Operator](https://github.com/zalando/postgres-operator)
-- [External Secrets Operator](https://external-secrets.io/)
-- [ArgoCD](https://argoproj.github.io/cd/)
-- [Prometheus](https://prometheus.io/)
-- [Grafana](https://grafana.com/)
-
 
 ## 🗺️ Roadmap
 
