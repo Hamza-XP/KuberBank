@@ -1,0 +1,523 @@
+================================================================
+  KUBERBANK JENKINS CI/CD SETUP GUIDE FOR DEBIAN
+  Complete Step-by-Step Instructions for Beginners
+================================================================
+
+📋 TABLE OF CONTENTS
+════════════════════
+1. Prerequisites
+2. Install Jenkins on Debian
+3. Initial Jenkins Configuration
+4. Install Required Plugins
+5. Configure Jenkins Credentials
+6. Create Jenkins Pipeline Job
+7. Configure Webhooks (Optional)
+8. Test Your Pipeline
+9. Troubleshooting
+10. Useful Commands
+
+================================================================
+1. PREREQUISITES
+================================================================
+
+Before starting, ensure you have:
+✓ Debian 11 or 12 (Bullseye/Bookseye)
+✓ Root or sudo access
+✓ At least 2GB RAM and 10GB disk space
+✓ Internet connection
+✓ PostgreSQL installed and running
+✓ Docker installed (for building images)
+✓ Git installed
+
+================================================================
+2. INSTALL JENKINS ON DEBIAN
+================================================================
+
+Step 2.1: Update System
+─────────────────────────
+sudo apt update
+sudo apt upgrade -y
+
+
+Step 2.2: Install Java (Jenkins requires Java)
+────────────────────────────────────────────────
+sudo apt install -y openjdk-11-jdk
+
+# Verify installation
+java -version
+
+
+Step 2.3: Add Jenkins Repository
+──────────────────────────────────
+# Add Jenkins GPG key
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+# Add Jenkins repository
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+
+Step 2.4: Install Jenkins
+──────────────────────────
+sudo apt update
+sudo apt install -y jenkins
+
+# Start Jenkins service
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+
+# Check status
+sudo systemctl status jenkins
+
+
+Step 2.5: Configure Firewall (if enabled)
+──────────────────────────────────────────
+sudo ufw allow 8080
+sudo ufw allow OpenSSH
+sudo ufw enable
+
+
+Step 2.6: Get Initial Admin Password
+─────────────────────────────────────
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+# Copy this password - you'll need it for initial login
+
+
+Step 2.7: Access Jenkins
+────────────────────────
+Open your browser and go to:
+http://your-server-ip:8080
+
+or if on local machine:
+http://localhost:8080
+
+================================================================
+3. INITIAL JENKINS CONFIGURATION
+================================================================
+
+Step 3.1: Unlock Jenkins
+─────────────────────────
+1. Paste the initial admin password from Step 2.6
+2. Click "Continue"
+
+
+Step 3.2: Install Suggested Plugins
+────────────────────────────────────
+1. Click "Install suggested plugins"
+2. Wait for installation to complete (5-10 minutes)
+
+
+Step 3.3: Create Admin User
+────────────────────────────
+1. Fill in the form:
+   - Username: admin
+   - Password: (choose a strong password)
+   - Confirm password
+   - Full name: Admin
+   - Email: admin@kuberbank.io
+
+2. Click "Save and Continue"
+
+
+Step 3.4: Instance Configuration
+─────────────────────────────────
+1. Jenkins URL should be: http://your-server-ip:8080
+2. Click "Save and Finish"
+3. Click "Start using Jenkins"
+
+================================================================
+4. INSTALL REQUIRED PLUGINS
+================================================================
+
+Step 4.1: Go to Plugin Manager
+───────────────────────────────
+1. Click "Manage Jenkins" (left sidebar)
+2. Click "Manage Plugins"
+3. Click "Available" tab
+
+
+Step 4.2: Install These Plugins
+────────────────────────────────
+Search and install each:
+
+REQUIRED PLUGINS:
+☑ Pipeline
+☑ Git
+☑ GitHub
+☑ Docker Pipeline
+☑ Credentials Binding
+☑ Slack Notification (optional)
+☑ HTML Publisher
+☑ JUnit
+☑ Workspace Cleanup
+
+To install:
+1. Search for plugin name
+2. Check the box
+3. Click "Install without restart"
+4. Wait for installation
+5. Check "Restart Jenkins when installation is complete"
+
+
+Step 4.3: Wait for Restart
+──────────────────────────
+Jenkins will restart automatically
+Access again at: http://your-server-ip:8080
+
+================================================================
+5. CONFIGURE JENKINS CREDENTIALS
+================================================================
+
+Step 5.1: Go to Credentials
+────────────────────────────
+1. Click "Manage Jenkins"
+2. Click "Manage Credentials"
+3. Click "(global)" under "Stores scoped to Jenkins"
+4. Click "Add Credentials"
+
+
+Step 5.2: Add Docker Registry Credentials
+──────────────────────────────────────────
+1. Kind: Username with password
+2. Scope: Global
+3. Username: (your Docker Hub username)
+4. Password: (your Docker Hub password or access token)
+5. ID: docker-registry-credentials
+6. Description: Docker Hub Credentials
+7. Click "Create"
+
+
+Step 5.3: Add Test Database Password
+─────────────────────────────────────
+1. Click "Add Credentials" again
+2. Kind: Secret text
+3. Scope: Global
+4. Secret: (your test database password)
+5. ID: test-db-password
+6. Description: Test Database Password
+7. Click "Create"
+
+
+Step 5.4: Add Slack Webhook (Optional)
+───────────────────────────────────────
+1. Click "Add Credentials"
+2. Kind: Secret text
+3. Scope: Global
+4. Secret: (your Slack webhook URL)
+5. ID: slack-webhook-url
+6. Description: Slack Webhook for Notifications
+7. Click "Create"
+
+
+Step 5.5: Add GitHub Token (Optional)
+──────────────────────────────────────
+1. Click "Add Credentials"
+2. Kind: Secret text
+3. Scope: Global
+4. Secret: (your GitHub personal access token)
+5. ID: github-token
+6. Description: GitHub Access Token
+7. Click "Create"
+
+================================================================
+6. CREATE JENKINS PIPELINE JOB
+================================================================
+
+Step 6.1: Create New Item
+──────────────────────────
+1. Click "New Item" (left sidebar)
+2. Enter name: "KuberBank-Pipeline"
+3. Select "Pipeline"
+4. Click "OK"
+
+
+Step 6.2: Configure General Settings
+─────────────────────────────────────
+1. Description: "KuberBank CI/CD Pipeline"
+2. Check "GitHub project" (if using GitHub)
+   - Project url: https://github.com/Hamza-XP/KuberBank
+3. Check "Discard old builds"
+   - Max # of builds to keep: 10
+
+
+Step 6.3: Build Triggers
+─────────────────────────
+Check one or more:
+☑ GitHub hook trigger for GITScm polling (for webhooks)
+☑ Poll SCM (for regular checking)
+   - Schedule: H/5 * * * * (checks every 5 minutes)
+
+
+Step 6.4: Pipeline Configuration
+─────────────────────────────────
+1. Definition: Pipeline script from SCM
+2. SCM: Git
+3. Repository URL: https://github.com/Hamza-XP/KuberBank
+   (or your Git repository URL)
+4. Credentials: (add GitHub credentials if private repo)
+5. Branch Specifier: */main
+6. Script Path: Jenkinsfile
+7. Click "Save"
+
+================================================================
+7. CONFIGURE WEBHOOKS (OPTIONAL - FOR AUTO-TRIGGER)
+================================================================
+
+Step 7.1: Get Jenkins Webhook URL
+──────────────────────────────────
+Your webhook URL format:
+http://your-jenkins-server:8080/github-webhook/
+
+
+Step 7.2: Configure GitHub Webhook
+───────────────────────────────────
+1. Go to your GitHub repository
+2. Click "Settings"
+3. Click "Webhooks"
+4. Click "Add webhook"
+5. Payload URL: http://your-jenkins-server:8080/github-webhook/
+6. Content type: application/json
+7. Which events: Just the push event
+8. Active: ☑
+9. Click "Add webhook"
+
+NOTE: If Jenkins is on localhost, GitHub can't reach it.
+      Use ngrok or similar for testing, or use polling instead.
+
+================================================================
+8. TEST YOUR PIPELINE
+================================================================
+
+Step 8.1: Manual Build
+──────────────────────
+1. Go to "KuberBank-Pipeline" job
+2. Click "Build Now"
+3. Watch the build progress in "Build History"
+4. Click on build number (e.g., #1)
+5. Click "Console Output" to see logs
+
+
+Step 8.2: What to Expect
+────────────────────────
+The pipeline will:
+✓ Checkout code from Git
+✓ Install Node.js dependencies
+✓ Run linter
+✓ Run unit tests
+✓ Setup test database
+✓ Run integration tests
+✓ Build Docker image
+✓ Run security scans
+✓ (If on main branch) Push to Docker Hub
+
+
+Step 8.3: View Test Results
+────────────────────────────
+After build completes:
+1. Go to build page
+2. Click "Test Result" (left sidebar)
+3. Click "Coverage Report" (if tests passed)
+
+
+Step 8.4: Check Build Status
+─────────────────────────────
+✓ Blue ball = Success
+✗ Red ball = Failure
+◯ Gray ball = Aborted
+⊙ Yellow ball = Unstable
+
+================================================================
+9. TROUBLESHOOTING
+================================================================
+
+Problem: Jenkins won't start
+─────────────────────────────
+Solution:
+sudo systemctl status jenkins
+sudo journalctl -u jenkins -f
+
+# Check if port 8080 is already in use
+sudo netstat -tlnp | grep 8080
+
+# Change Jenkins port (if needed)
+sudo nano /etc/default/jenkins
+# Change HTTP_PORT=8080 to HTTP_PORT=8081
+sudo systemctl restart jenkins
+
+
+Problem: Can't access Jenkins web interface
+────────────────────────────────────────────
+Solution:
+# Check if Jenkins is running
+sudo systemctl status jenkins
+
+# Check firewall
+sudo ufw status
+sudo ufw allow 8080
+
+# Check if you can access locally
+curl http://localhost:8080
+
+
+Problem: Pipeline fails at "Install Dependencies"
+──────────────────────────────────────────────────
+Solution:
+# Ensure Node.js is installed on Jenkins server
+sudo apt install -y nodejs npm
+
+# Verify
+node --version
+npm --version
+
+
+Problem: Pipeline fails at "Setup Test Database"
+─────────────────────────────────────────────────
+Solution:
+# Ensure PostgreSQL is installed and running
+sudo systemctl status postgresql
+
+# Create test user and database manually
+sudo -u postgres psql
+CREATE USER bankuser WITH PASSWORD 'your_password';
+CREATE DATABASE kuberbank_test OWNER bankuser;
+GRANT ALL PRIVILEGES ON DATABASE kuberbank_test TO bankuser;
+\q
+
+
+Problem: Docker commands fail
+──────────────────────────────
+Solution:
+# Add jenkins user to docker group
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+
+# Verify
+sudo -u jenkins docker ps
+
+
+Problem: Git authentication fails
+──────────────────────────────────
+Solution:
+# For private repos, add SSH key or use HTTPS with token
+# Generate SSH key for jenkins user
+sudo su - jenkins
+ssh-keygen -t rsa -b 4096
+cat ~/.ssh/id_rsa.pub
+# Add this public key to GitHub
+
+================================================================
+10. USEFUL COMMANDS
+================================================================
+
+Jenkins Service Management
+──────────────────────────
+sudo systemctl start jenkins      # Start Jenkins
+sudo systemctl stop jenkins       # Stop Jenkins
+sudo systemctl restart jenkins    # Restart Jenkins
+sudo systemctl status jenkins     # Check status
+sudo systemctl enable jenkins     # Enable on boot
+
+
+View Jenkins Logs
+─────────────────
+sudo journalctl -u jenkins -f            # Follow logs
+sudo tail -f /var/log/jenkins/jenkins.log # Jenkins logs
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword  # Initial password
+
+
+Jenkins Directory Structure
+───────────────────────────
+/var/lib/jenkins/              # Jenkins home
+/var/lib/jenkins/jobs/         # All jobs
+/var/lib/jenkins/workspace/    # Build workspaces
+/var/log/jenkins/              # Logs
+/etc/default/jenkins           # Configuration
+
+
+Check Jenkins Version
+─────────────────────
+java -jar /usr/share/jenkins/jenkins.war --version
+
+
+Backup Jenkins
+──────────────
+# Stop Jenkins
+sudo systemctl stop jenkins
+
+# Backup Jenkins home
+sudo tar -czf jenkins-backup-$(date +%Y%m%d).tar.gz /var/lib/jenkins/
+
+# Start Jenkins
+sudo systemctl start jenkins
+
+
+Restore Jenkins
+───────────────
+sudo systemctl stop jenkins
+sudo tar -xzf jenkins-backup-YYYYMMDD.tar.gz -C /
+sudo systemctl start jenkins
+
+
+Update Jenkins
+──────────────
+sudo apt update
+sudo apt upgrade jenkins
+
+
+Clean Up Workspace
+──────────────────
+# From Jenkins UI: Job → Workspace → Wipe Out Workspace
+# Or manually:
+sudo rm -rf /var/lib/jenkins/workspace/KuberBank-Pipeline/*
+
+================================================================
+11. NEXT STEPS
+================================================================
+
+After successful setup:
+
+1. ✓ Commit Jenkinsfile to your repository root
+2. ✓ Add test files to app/api/__tests__/
+3. ✓ Update package.json with test scripts
+4. ✓ Configure notifications (Slack/Email)
+5. ✓ Set up deployment to Kubernetes (optional)
+6. ✓ Configure backup strategy
+7. ✓ Monitor build metrics
+
+================================================================
+12. QUICK REFERENCE
+================================================================
+
+Access Jenkins:        http://localhost:8080
+Initial Password:      /var/lib/jenkins/secrets/initialAdminPassword
+Configuration:         Manage Jenkins → Configure System
+Plugins:               Manage Jenkins → Manage Plugins
+Credentials:           Manage Jenkins → Manage Credentials
+System Logs:           Manage Jenkins → System Log
+Script Console:        Manage Jenkins → Script Console
+
+================================================================
+ADDITIONAL RESOURCES
+================================================================
+
+Jenkins Documentation:     https://www.jenkins.io/doc/
+Pipeline Syntax:          https://www.jenkins.io/doc/book/pipeline/syntax/
+Plugin Index:             https://plugins.jenkins.io/
+Community:                https://community.jenkins.io/
+
+================================================================
+SUPPORT
+================================================================
+
+For KuberBank-specific issues:
+GitHub: https://github.com/Hamza-XP/KuberBank/issues
+
+For Jenkins issues:
+Forum: https://community.jenkins.io/
+
+================================================================
+END OF GUIDE
+================================================================
