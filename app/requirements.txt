@@ -1,0 +1,26 @@
+# ================================================================
+# KuberBank System Requirements
+# Description: System-level dependencies for the application
+# ================================================================
+
+# Node.js (installed separately via official image)
+
+# PostgreSQL client tools
+postgresql-client>=15.0
+
+# Build tools
+build-essential
+python3
+make
+g++
+
+# Network tools
+curl
+wget
+ca-certificates
+
+# Security
+gnupg
+
+# System utilities
+dumb-init
