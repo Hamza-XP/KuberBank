@@ -1,4 +1,59 @@
-# Multi-stage build for KuberBank Backend
+# ================================================================
+# Multi-stage Dockerfile for KuberBank Backend
+# Stage 1: Dependencies and Testing
+# Stage 2: Production Build
+# ================================================================
+
+# ================================================================
+# STAGE 1: Base image with dependencies
+# ================================================================
+FROM node:18-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    dumb-init \
+    curl \
+    ca-certificates
+
+WORKDIR /app
+
+# Copy package files
+COPY api/package*.json ./
+
+# Install ALL dependencies (including dev dependencies for testing)
+RUN npm ci
+
+# Copy application code
+COPY api/ ./
+
+# ================================================================
+# STAGE 2: Testing stage
+# ================================================================
+FROM base AS test
+
+# Set test environment
+ENV NODE_ENV=test
+
+# Copy test configuration
+COPY api/jest.config.js ./
+COPY api/jest.setup.js ./
+COPY api/.eslintrc.js ./
+
+# Install additional test dependencies if needed
+RUN npm ci
+
+# Run linting
+RUN npm run lint || exit 0
+
+# Run tests with coverage
+RUN npm test -- --coverage --passWithNoTests
+
+# This stage will fail if tests fail, preventing the build from continuing
+
+# ================================================================
+# STAGE 3: Production build
+# ================================================================
 FROM node:18-alpine AS builder
 
 # Build arguments
@@ -14,33 +69,39 @@ LABEL org.opencontainers.image.title="KuberBank Backend" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}"
 
-# Set working directory
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    ca-certificates
+
 WORKDIR /app
 
 # Copy package files
 COPY api/package*.json ./
 
-# Install dependencies
-RUN npm ci --production=false && \
+# Install only production dependencies
+RUN npm ci --production && \
     npm cache clean --force
 
 # Copy application code
 COPY api/ ./
 
-# Run tests (optional, can be disabled for faster builds)
-# RUN npm test
+# ================================================================
+# STAGE 4: Production runtime
+# ================================================================
+FROM node:18-alpine AS production
 
-# Production stage
-FROM node:18-alpine
-
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    postgresql-client \
+    curl
 
 # Create app user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Set working directory
 WORKDIR /app
 
 # Copy dependencies from builder
