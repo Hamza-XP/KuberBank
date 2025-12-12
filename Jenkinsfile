@@ -209,6 +209,7 @@ pipeline {
                             --coverage \
                             --coverageDirectory=/app/coverage \
                             --testResultsProcessor=jest-junit
+                            --forceExit
                     
                     echo "✓ Unit tests completed"
                 """
@@ -253,7 +254,7 @@ pipeline {
                         -e TEST_DB_USER=${TEST_DB_USER} \
                         -e TEST_DB_PASSWORD=${TEST_DB_PASSWORD} \
                         ${IMAGE_NAME}:test-${IMAGE_TAG} \
-                        npm run test:integration
+                        npm run test:integration -- --forceExit
                     
                     echo "✓ Integration tests completed"
                 """
