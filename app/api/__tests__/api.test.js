@@ -428,9 +428,11 @@ describe('KuberBank API Tests', () => {
 
   describe('Error Handling', () => {
     test('Should handle database connection errors gracefully', async () => {
-      // Mock connection failure at the pool.connect level
-      const originalConnect = pool.connect;
-      pool.connect.mockRejectedValueOnce(new Error('Connection timeout'));
+      // Clear all previous mocks to ensure clean state
+      jest.clearAllMocks();
+      
+      // Mock pool.query to fail (this is what GET endpoint uses)
+      pool.query.mockRejectedValueOnce(new Error('Connection timeout'));
 
       const response = await request(app)
         .get('/api/accounts/KB2025010100001');
@@ -439,9 +441,6 @@ describe('KuberBank API Tests', () => {
       expect(response.status).toBe(500);
       expect(response.body).toHaveProperty('success', false);
       expect(response.body).toHaveProperty('error');
-      
-      // Restore original mock
-      pool.connect = originalConnect;
     });
 
     test('Should handle malformed JSON', async () => {
