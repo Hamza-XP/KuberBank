@@ -473,7 +473,7 @@ pipeline {
     post {
         always {
             echo '========================================='
-            echo '   🧹 Cleaning up...'
+            echo '          🧹 Cleaning up...'
             echo '========================================='
             sh """
                 # Stop and remove all containers
@@ -491,6 +491,18 @@ pipeline {
                 # Clean up dangling images
                 docker image prune -f || true
                 
+                # Fix permissions on coverage directory before cleanup
+                # This is needed because Docker creates files as root
+                if [ -d "\${WORKSPACE}/coverage" ]; then
+                    echo "Fixing coverage directory permissions..."
+                    sudo chown -R \$(id -u):\$(id -g) "\${WORKSPACE}/coverage" || true
+                fi
+                
+                if [ -d "\${WORKSPACE}/test-results" ]; then
+                    echo "Fixing test-results directory permissions..."
+                    sudo chown -R \$(id -u):\$(id -g) "\${WORKSPACE}/test-results" || true
+                fi
+                
                 echo "✓ Cleanup completed"
             """
             
@@ -501,7 +513,7 @@ pipeline {
                 fingerprint: true
             )
             
-            // Clean workspace
+            // Clean workspace - now permissions are fixed
             cleanWs(
                 deleteDirs: true,
                 disableDeferredWipeout: true,
