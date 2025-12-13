@@ -100,7 +100,7 @@ describe('KuberBank API Tests', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@test.com',
-        initialDeposit: 1000
+        initialDeposit: 1000,
       };
 
       mockClient.query
@@ -127,7 +127,7 @@ describe('KuberBank API Tests', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'invalid-email',
-        initialDeposit: 1000
+        initialDeposit: 1000,
       };
 
       const response = await request(app)
@@ -136,6 +136,7 @@ describe('KuberBank API Tests', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('success', false);
+      expect(response.body.error).toMatch(/email/i);
     });
 
     test('GET /api/accounts/:accountNumber - should return account details', async () => {
@@ -146,7 +147,7 @@ describe('KuberBank API Tests', () => {
         status: 'active',
         first_name: 'John',
         last_name: 'Doe',
-        email: 'john.doe@test.com'
+        email: 'john.doe@test.com',
       };
 
       pool.query.mockResolvedValueOnce({ rows: [mockAccount] });
@@ -188,7 +189,7 @@ describe('KuberBank API Tests', () => {
         accountNumber: 'KB2025010100001',
         type: 'deposit',
         amount: 500,
-        description: 'Test deposit'
+        description: 'Test deposit',
       };
 
       mockClient.query
@@ -213,7 +214,7 @@ describe('KuberBank API Tests', () => {
         accountNumber: 'KB2025010100001',
         type: 'withdrawal',
         amount: 500,
-        description: 'Test withdrawal'
+        description: 'Test withdrawal',
       };
 
       mockClient.query
@@ -237,13 +238,13 @@ describe('KuberBank API Tests', () => {
         accountNumber: 'KB2025010100001',
         type: 'withdrawal',
         amount: 10000,
-        description: 'Test withdrawal'
+        description: 'Test withdrawal',
       };
 
       mockClient.query
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [{ id: 1, balance: 5000 }] }) // SELECT account
-        .mockRejectedValueOnce(new Error('Insufficient funds')); // Should fail
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
 
       const response = await request(app)
         .post('/api/transactions')
@@ -251,7 +252,7 @@ describe('KuberBank API Tests', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('success', false);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toMatch(/insufficient funds/i);
     });
 
     test('GET /api/accounts/:accountNumber/transactions - should return transaction history', async () => {
@@ -262,7 +263,7 @@ describe('KuberBank API Tests', () => {
           amount: 1000,
           description: 'Initial deposit',
           status: 'completed',
-          created_at: new Date()
+          created_at: new Date(),
         },
         {
           id: 2,
@@ -270,8 +271,8 @@ describe('KuberBank API Tests', () => {
           amount: 200,
           description: 'ATM withdrawal',
           status: 'completed',
-          created_at: new Date()
-        }
+          created_at: new Date(),
+        },
       ];
 
       pool.query.mockResolvedValueOnce({ rows: mockTransactions });
@@ -301,15 +302,17 @@ describe('KuberBank API Tests', () => {
         fromAccount: 'KB2025010100001',
         toAccount: 'KB2025010200001',
         amount: 250,
-        description: 'Test transfer'
+        description: 'Test transfer',
       };
 
       mockClient.query
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
-        .mockResolvedValueOnce({ rows: [
-          { id: 1, account_number: 'KB2025010100001', balance: 5000 },
-          { id: 2, account_number: 'KB2025010200001', balance: 3000 }
-        ] }) // SELECT both accounts
+        .mockResolvedValueOnce({
+          rows: [
+            { id: 1, account_number: 'KB2025010100001', balance: 5000 },
+            { id: 2, account_number: 'KB2025010200001', balance: 3000 },
+          ],
+        }) // SELECT both accounts
         .mockResolvedValueOnce({ rows: [] }) // UPDATE from account
         .mockResolvedValueOnce({ rows: [] }) // UPDATE to account
         .mockResolvedValueOnce({ rows: [] }) // INSERT from transaction
@@ -330,15 +333,17 @@ describe('KuberBank API Tests', () => {
         fromAccount: 'KB2025010100001',
         toAccount: 'KB9999999999',
         amount: 250,
-        description: 'Test transfer'
+        description: 'Test transfer',
       };
 
       mockClient.query
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
-        .mockResolvedValueOnce({ rows: [
-          { id: 1, account_number: 'KB2025010100001', balance: 5000 }
-        ] }) // SELECT only one account
-        .mockRejectedValueOnce(new Error('Account not found'));
+        .mockResolvedValueOnce({
+          rows: [
+            { id: 1, account_number: 'KB2025010100001', balance: 5000 },
+          ],
+        }) // SELECT only one account
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
 
       const response = await request(app)
         .post('/api/transfers')
@@ -346,6 +351,7 @@ describe('KuberBank API Tests', () => {
         .expect(404);
 
       expect(response.body).toHaveProperty('success', false);
+      expect(response.body.error).toMatch(/not found/i);
     });
   });
 
@@ -357,11 +363,12 @@ describe('KuberBank API Tests', () => {
           accountNumber: 'KB2025010100001',
           type: 'deposit',
           amount: -100,
-          description: 'Invalid amount'
+          description: 'Invalid amount',
         })
         .expect(400);
 
       expect(response.body).toHaveProperty('success', false);
+      expect(response.body.error).toMatch(/positive/i);
     });
 
     test('Should reject invalid transaction type', async () => {
@@ -371,11 +378,12 @@ describe('KuberBank API Tests', () => {
           accountNumber: 'KB2025010100001',
           type: 'invalid_type',
           amount: 100,
-          description: 'Invalid type'
+          description: 'Invalid type',
         })
         .expect(400);
 
       expect(response.body).toHaveProperty('success', false);
+      expect(response.body.error).toMatch(/transaction type/i);
     });
 
     test('Should reject invalid account number format', async () => {
@@ -384,6 +392,7 @@ describe('KuberBank API Tests', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('success', false);
+      expect(response.body.error).toMatch(/account number/i);
     });
   });
 
@@ -399,8 +408,9 @@ describe('KuberBank API Tests', () => {
       });
 
       const requests = [];
-  
-      // Make 105 requests
+
+      // Make 105 requests (slightly above the 100 limit)
+      // Note: Rate limiting is disabled in test mode, so this test verifies the behavior
       for (let i = 0; i < 105; i++) {
         requests.push(
           request(app)
@@ -409,22 +419,29 @@ describe('KuberBank API Tests', () => {
       }
 
       const responses = await Promise.all(requests);
+
       // In test mode, rate limiting is disabled, so all should succeed or fail based on other factors
       const successful = responses.filter((r) => r.status === 200 || r.status === 404 || r.status === 400);
-      expect(successful.length).toBeGreaterThan(0); // ✅ Passes
+      expect(successful.length).toBeGreaterThan(0);
     });
   });
 
   describe('Error Handling', () => {
     test('Should handle database connection errors gracefully', async () => {
+      // Mock connection failure at the pool.connect level
+      const originalConnect = pool.connect;
       pool.connect.mockRejectedValueOnce(new Error('Connection timeout'));
 
       const response = await request(app)
-        .get('/api/accounts/KB2025010100001')
-        .expect(500);
+        .get('/api/accounts/KB2025010100001');
 
+      // Should get 500 error
+      expect(response.status).toBe(500);
       expect(response.body).toHaveProperty('success', false);
       expect(response.body).toHaveProperty('error');
+      
+      // Restore original mock
+      pool.connect = originalConnect;
     });
 
     test('Should handle malformed JSON', async () => {
