@@ -86,19 +86,36 @@ pipeline {
                         -e POSTGRES_PASSWORD=${TEST_DB_PASSWORD} \
                         -e POSTGRES_DB=${TEST_DB_NAME} \
                         postgres:15-alpine
-                    
-                    # Wait for PostgreSQL to be ready
+                        
+                    # Wait for PostgreSQL to be ready - IMPROVED VERSION
                     echo "Waiting for PostgreSQL to start..."
-                    for i in {1..30}; do
+                    max_attempts=30
+                    attempt=0
+                    
+                    while [ \$attempt -lt \$max_attempts ]; do
+                        attempt=\$((attempt + 1))
+                        
+                        # Check if pg_isready succeeds
                         if docker exec ${TEST_DB_CONTAINER} pg_isready -U ${TEST_DB_USER} -d ${TEST_DB_NAME} 2>/dev/null; then
-                            echo "✓ PostgreSQL is ready!"
-                            break
+                            # Extra verification - try to actually connect
+                            if docker exec ${TEST_DB_CONTAINER} psql -U ${TEST_DB_USER} -d ${TEST_DB_NAME} -c "SELECT 1;" >/dev/null 2>&1; then
+                                echo "✓ PostgreSQL is ready!"
+                                break
+                            fi
                         fi
-                        echo "  Waiting... (\$i/30)"
+                        
+                        echo "  Attempt \$attempt/\$max_attempts - waiting..."
                         sleep 2
+                        
+                        if [ \$attempt -eq \$max_attempts ]; then
+                            echo "❌ PostgreSQL failed to start within expected time"
+                            docker logs ${TEST_DB_CONTAINER}
+                            exit 1
+                        fi
                     done
                     
-                    # Verify database is accessible
+                    # Final verification
+                    echo "Verifying database connection..."
                     docker exec ${TEST_DB_CONTAINER} \
                         psql -U ${TEST_DB_USER} -d ${TEST_DB_NAME} -c "SELECT version();"
                     
