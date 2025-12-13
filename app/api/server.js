@@ -378,7 +378,29 @@ process.on('SIGTERM', () => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  logger.info(`KuberBank API server running on port ${PORT}`);
-});
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//   logger.info(`KuberBank API server running on port ${PORT}`);
+// });
+
+// Export app for testing
+module.exports = app;
+
+// Only start server if not being imported for tests
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  const server = app.listen(PORT, () => {
+    logger.info(`KuberBank API server running on port ${PORT}`);
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      pool.end(() => {
+        logger.info('Database pool closed');
+        process.exit(0);
+      });
+    });
+  });
+}
