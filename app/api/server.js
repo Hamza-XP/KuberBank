@@ -57,14 +57,25 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Handle JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ success: false, error: 'Invalid JSON format' });
+  }
+  next();
+});
+
 app.use(express.static('public'));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100
-});
-app.use('/api/', limiter);
+// Rate limiting - only apply in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100
+  });
+  app.use('/api/', limiter);
+}
 
 // PgBouncer connection through connection pooling
 const pool = new Pool({
@@ -80,6 +91,16 @@ const pool = new Pool({
     rejectUnauthorized: false
   } : false
 });
+
+// Validation helpers
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const isValidAccountNumber = (accountNumber) => {
+  return /^KB\d+$/.test(accountNumber);
+};
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -129,26 +150,49 @@ app.get('/metrics', async (req, res) => {
 // Create account
 app.post('/api/accounts', async (req, res) => {
   const { firstName, lastName, email, initialDeposit } = req.body;
+
+  // Input validation
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: firstName, lastName, email'
+    });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid email format'
+    });
+  }
+
+  if (initialDeposit !== undefined && (typeof initialDeposit !== 'number' || initialDeposit < 0)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Initial deposit must be a positive number'
+    });
+  }
+
   const client = await pool.connect();
-  
+
   try {
     const start = Date.now();
     await client.query('BEGIN');
-    
+
     // Create user
     const userResult = await client.query(
       'INSERT INTO users (first_name, last_name, email, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
       [firstName, lastName, email]
     );
     const userId = userResult.rows[0].id;
-    
+
     // Create account
     const accountNumber = `KB${Date.now()}${Math.floor(Math.random() * 10000)}`;
     const accountResult = await client.query(
       'INSERT INTO accounts (user_id, account_number, balance, status) VALUES ($1, $2, $3, $4) RETURNING id, account_number',
       [userId, accountNumber, initialDeposit || 0, 'active']
     );
-    
+
     // Record initial deposit if provided
     if (initialDeposit && initialDeposit > 0) {
       await client.query(
@@ -157,13 +201,13 @@ app.post('/api/accounts', async (req, res) => {
       );
       transactionCounter.labels('deposit').inc();
     }
-    
+
     await client.query('COMMIT');
-    
+
     const duration = (Date.now() - start) / 1000;
     dbQueryDuration.labels('account_creation').observe(duration);
     accountCreationCounter.inc();
-    
+
     logger.info('Account created', { userId, accountNumber });
     res.status(201).json({
       success: true,
@@ -185,7 +229,15 @@ app.post('/api/accounts', async (req, res) => {
 // Get account details
 app.get('/api/accounts/:accountNumber', async (req, res) => {
   const { accountNumber } = req.params;
-  
+
+  // Validate account number format
+  if (!isValidAccountNumber(accountNumber)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid account number format'
+    });
+  }
+
   try {
     const start = Date.now();
     const result = await pool.query(
@@ -196,14 +248,14 @@ app.get('/api/accounts/:accountNumber', async (req, res) => {
        WHERE a.account_number = $1`,
       [accountNumber]
     );
-    
+
     const duration = (Date.now() - start) / 1000;
     dbQueryDuration.labels('account_query').observe(duration);
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Account not found' });
     }
-    
+
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     logger.error('Account query failed', { error: error.message });
@@ -214,57 +266,85 @@ app.get('/api/accounts/:accountNumber', async (req, res) => {
 // Create transaction (deposit/withdrawal)
 app.post('/api/transactions', async (req, res) => {
   const { accountNumber, type, amount, description } = req.body;
+
+  // Input validation
+  if (!accountNumber || !type || amount === undefined) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: accountNumber, type, amount'
+    });
+  }
+
+  if (!isValidAccountNumber(accountNumber)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid account number format'
+    });
+  }
+
+  if (typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Amount must be a positive number'
+    });
+  }
+
+  if (type !== 'deposit' && type !== 'withdrawal') {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid transaction type. Must be "deposit" or "withdrawal"'
+    });
+  }
+
   const client = await pool.connect();
-  
+
   try {
     const start = Date.now();
     await client.query('BEGIN');
-    
+
     // Get account
     const accountResult = await client.query(
       'SELECT id, balance FROM accounts WHERE account_number = $1 FOR UPDATE',
       [accountNumber]
     );
-    
+
     if (accountResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ success: false, error: 'Account not found' });
     }
-    
+
     const account = accountResult.rows[0];
-    let newBalance = account.balance;
-    
+    const currentBalance = parseFloat(account.balance);
+    let newBalance = currentBalance;
+
     if (type === 'deposit') {
-      newBalance += parseFloat(amount);
+      newBalance = currentBalance + amount;
     } else if (type === 'withdrawal') {
-      if (account.balance < amount) {
+      if (currentBalance < amount) {
         await client.query('ROLLBACK');
         return res.status(400).json({ success: false, error: 'Insufficient funds' });
       }
-      newBalance -= parseFloat(amount);
-    } else {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ success: false, error: 'Invalid transaction type' });
+      newBalance = currentBalance - amount;
     }
-    
+
     // Update balance
     await client.query(
       'UPDATE accounts SET balance = $1, updated_at = NOW() WHERE id = $2',
       [newBalance, account.id]
     );
-    
+
     // Record transaction
     const txResult = await client.query(
       'INSERT INTO transactions (account_id, type, amount, description, status, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, created_at',
       [account.id, type, amount, description, 'completed']
     );
-    
+
     await client.query('COMMIT');
-    
+
     const duration = (Date.now() - start) / 1000;
     dbQueryDuration.labels('transaction').observe(duration);
     transactionCounter.labels(type).inc();
-    
+
     logger.info('Transaction completed', { accountNumber, type, amount });
     res.status(201).json({
       success: true,
@@ -287,7 +367,7 @@ app.post('/api/transactions', async (req, res) => {
 app.get('/api/accounts/:accountNumber/transactions', async (req, res) => {
   const { accountNumber } = req.params;
   const { limit = 50, offset = 0 } = req.query;
-  
+
   try {
     const start = Date.now();
     const result = await pool.query(
@@ -299,10 +379,10 @@ app.get('/api/accounts/:accountNumber/transactions', async (req, res) => {
        LIMIT $2 OFFSET $3`,
       [accountNumber, limit, offset]
     );
-    
+
     const duration = (Date.now() - start) / 1000;
     dbQueryDuration.labels('transaction_history').observe(duration);
-    
+
     res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Transaction history query failed', { error: error.message });
@@ -313,35 +393,65 @@ app.get('/api/accounts/:accountNumber/transactions', async (req, res) => {
 // Transfer between accounts
 app.post('/api/transfers', async (req, res) => {
   const { fromAccount, toAccount, amount, description } = req.body;
+
+  // Input validation
+  if (!fromAccount || !toAccount || amount === undefined) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: fromAccount, toAccount, amount'
+    });
+  }
+
+  if (!isValidAccountNumber(fromAccount) || !isValidAccountNumber(toAccount)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid account number format'
+    });
+  }
+
+  if (typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Amount must be a positive number'
+    });
+  }
+
+  if (fromAccount === toAccount) {
+    return res.status(400).json({
+      success: false,
+      error: 'Cannot transfer to the same account'
+    });
+  }
+
   const client = await pool.connect();
-  
+
   try {
     const start = Date.now();
     await client.query('BEGIN');
-    
+
     // Get both accounts with row locks
     const accountsResult = await client.query(
       'SELECT id, account_number, balance FROM accounts WHERE account_number = ANY($1) FOR UPDATE',
       [[fromAccount, toAccount]]
     );
-    
+
     if (accountsResult.rows.length !== 2) {
       await client.query('ROLLBACK');
       return res.status(404).json({ success: false, error: 'One or both accounts not found' });
     }
-    
-    const from = accountsResult.rows.find(a => a.account_number === fromAccount);
-    const to = accountsResult.rows.find(a => a.account_number === toAccount);
-    
-    if (from.balance < amount) {
+
+    const from = accountsResult.rows.find((a) => a.account_number === fromAccount);
+    const to = accountsResult.rows.find((a) => a.account_number === toAccount);
+
+    if (parseFloat(from.balance) < amount) {
       await client.query('ROLLBACK');
       return res.status(400).json({ success: false, error: 'Insufficient funds' });
     }
-    
+
     // Update balances
     await client.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, from.id]);
     await client.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, to.id]);
-    
+
     // Record transactions
     await client.query(
       'INSERT INTO transactions (account_id, type, amount, description, status) VALUES ($1, $2, $3, $4, $5)',
@@ -351,13 +461,13 @@ app.post('/api/transfers', async (req, res) => {
       'INSERT INTO transactions (account_id, type, amount, description, status) VALUES ($1, $2, $3, $4, $5)',
       [to.id, 'deposit', amount, `Transfer from ${fromAccount}: ${description}`, 'completed']
     );
-    
+
     await client.query('COMMIT');
-    
+
     const duration = (Date.now() - start) / 1000;
     dbQueryDuration.labels('transfer').observe(duration);
     transactionCounter.labels('transfer').inc();
-    
+
     logger.info('Transfer completed', { fromAccount, toAccount, amount });
     res.status(201).json({ success: true, message: 'Transfer completed' });
   } catch (error) {
@@ -368,20 +478,6 @@ app.post('/api/transfers', async (req, res) => {
     client.release();
   }
 });
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received: closing HTTP server');
-  pool.end(() => {
-    logger.info('Database pool closed');
-    process.exit(0);
-  });
-});
-
-// const PORT = process.env.PORT || 3000;
-// app.listen(PORT, () => {
-//   logger.info(`KuberBank API server running on port ${PORT}`);
-// });
 
 // Export app for testing
 module.exports = app;
