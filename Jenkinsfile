@@ -493,14 +493,20 @@ pipeline {
                 
                 # Fix permissions on coverage directory before cleanup
                 # This is needed because Docker creates files as root
+                # Fix permissions using Docker (no sudo needed!)
                 if [ -d "\${WORKSPACE}/coverage" ]; then
                     echo "Fixing coverage directory permissions..."
-                    sudo chown -R \$(id -u):\$(id -g) "\${WORKSPACE}/coverage" || true
+                    docker run --rm \
+                        -v "\${WORKSPACE}:/workspace" \
+                        alpine:latest \
+                        chown -R \$(id -u):\$(id -g) /workspace/coverage 2>/dev/null || true
                 fi
-                
                 if [ -d "\${WORKSPACE}/test-results" ]; then
                     echo "Fixing test-results directory permissions..."
-                    sudo chown -R \$(id -u):\$(id -g) "\${WORKSPACE}/test-results" || true
+                    docker run --rm \
+                        -v "\${WORKSPACE}:/workspace" \
+                        alpine:latest \
+                        chown -R \$(id -u):\$(id -g) /workspace/test-results 2>/dev/null || true
                 fi
                 
                 echo "✓ Cleanup completed"
