@@ -14,6 +14,7 @@ describe('KuberBank API Integration Tests', () => {
   beforeAll(async () => {
     // Set test environment
     process.env.NODE_ENV = 'test';
+    // Use TEST_DB_HOST from environment (set by Jenkins to 'test-postgres')
     process.env.DB_HOST = process.env.TEST_DB_HOST || 'localhost';
     process.env.DB_PORT = process.env.TEST_DB_PORT || '5432';
     process.env.DB_NAME = process.env.TEST_DB_NAME || 'kuberbank_test';
@@ -29,16 +30,22 @@ describe('KuberBank API Integration Tests', () => {
       password: process.env.DB_PASSWORD,
     });
 
-    // Wait for database to be ready
-    let retries = 5;
+    // Wait for database to be ready with longer timeout
+    let retries = 15; // Increased from 5
+    let connected = false;
+    
     while (retries > 0) {
       try {
         await pool.query('SELECT 1');
         console.log('✓ Database connection established');
+        connected = true;
         break;
       } catch (error) {
         retries--;
-        if (retries === 0) throw error;
+        if (retries === 0) {
+          console.error('Failed to connect to database:', error.message);
+          throw new Error(`Database connection failed after 30 seconds. Host: ${process.env.DB_HOST}:${process.env.DB_PORT}`);
+        }
         console.log(`Waiting for database... (${retries} retries left)`);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
@@ -46,7 +53,7 @@ describe('KuberBank API Integration Tests', () => {
 
     // Import app after database is ready
     app = require('../server');
-  });
+  }, 35000); // Increase timeout to 35 seconds.
 
   afterAll(async () => {
     // Cleanup test data
