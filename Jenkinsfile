@@ -211,31 +211,26 @@ pipeline {
                 echo '========================================='
                 sh """
                     # Create directories for test results
-                    mkdir -p \${WORKSPACE}/test-results
+                    mkdir -p \${WORKSPACE}/reports/junit
                     mkdir -p \${WORKSPACE}/coverage
                     
                     # Run unit tests in container
                     docker run --rm \
-                        --name unit-test-${BUILD_NUMBER} \
-                        --network ${DOCKER_NETWORK} \
+                        --name unit-test-\${BUILD_NUMBER} \
+                        --network \${DOCKER_NETWORK} \
                         -e NODE_ENV=test \
-                        -v \${WORKSPACE}/test-results:/app/test-results \
+                        -v \${WORKSPACE}/reports:/app/reports \
                         -v \${WORKSPACE}/coverage:/app/coverage \
-                        ${IMAGE_NAME}:test-${IMAGE_TAG} \
-                        npm run test:unit -- \
-                            --coverage \
-                            --coverageDirectory=/app/coverage \
-                            --testResultsProcessor=jest-junit
-                            --forceExit
+                        \${IMAGE_NAME}:test-\${IMAGE_TAG} \
+                        npm run test:ci
                     
                     echo "✓ Unit tests completed"
                 """
             }
             post {
                 always {
-                    // Publish JUnit test results
                     junit(
-                        testResults: 'test-results/*.xml',
+                        testResults: 'reports/junit/*.xml',
                         allowEmptyResults: true
                     )
                     
@@ -271,7 +266,7 @@ pipeline {
                         -e TEST_DB_USER=${TEST_DB_USER} \
                         -e TEST_DB_PASSWORD=${TEST_DB_PASSWORD} \
                         ${IMAGE_NAME}:test-${IMAGE_TAG} \
-                        npm run test:integration -- --forceExit
+                        npm run test:integration
                     
                     echo "✓ Integration tests completed"
                 """
