@@ -58,6 +58,20 @@ describe('KuberBank API Integration Tests', () => {
   afterAll(async () => {
     // Cleanup test data
     if (testAccountNumber) {
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [testAccountNumber]);
+        
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [testAccountNumber]);
+        
       await pool.query(
         'DELETE FROM accounts WHERE account_number = $1',
         [testAccountNumber]
@@ -254,6 +268,20 @@ describe('KuberBank API Integration Tests', () => {
 
     afterAll(async () => {
       // Cleanup
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number IN ($1, $2)
+        )
+      `, [account1, account2]);
+      
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number IN ($1, $2)
+        )
+      `, [account1, account2]);
+      
       await pool.query(
         'DELETE FROM accounts WHERE account_number IN ($1, $2)',
         [account1, account2]
@@ -302,6 +330,20 @@ describe('KuberBank API Integration Tests', () => {
     });
 
     afterAll(async () => {
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
+      
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
+      
       await pool.query(
         'DELETE FROM accounts WHERE account_number = $1',
         [accountNumber]
@@ -336,6 +378,18 @@ describe('KuberBank API Integration Tests', () => {
       expect(withdrawalResponse.body.error).toContain('Insufficient funds');
 
       // Cleanup
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
       await pool.query(
         'DELETE FROM accounts WHERE account_number = $1',
         [accountNumber]
@@ -367,6 +421,18 @@ describe('KuberBank API Integration Tests', () => {
       expect(transferResponse.body.success).toBe(false);
 
       // Cleanup
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
       await pool.query(
         'DELETE FROM accounts WHERE account_number = $1',
         [accountNumber]
@@ -417,6 +483,18 @@ describe('KuberBank API Integration Tests', () => {
       expect(new Date(timestamp2) > new Date(timestamp1)).toBe(true);
 
       // Cleanup
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
       await pool.query(
         'DELETE FROM accounts WHERE account_number = $1',
         [accountNumber]
@@ -465,6 +543,18 @@ describe('KuberBank API Integration Tests', () => {
       expect(latestLog.new_values).toHaveProperty('balance');
 
       // Cleanup
+      await pool.query(`
+        DELETE FROM audit_logs
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
+      await pool.query(`
+        DELETE FROM transactions
+        WHERE account_id IN (
+          SELECT id FROM accounts WHERE account_number = $1
+        )
+      `, [accountNumber]);
       await pool.query(
         'DELETE FROM accounts WHERE account_number = $1',
         [accountNumber]
