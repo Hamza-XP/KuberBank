@@ -11,7 +11,7 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest --testPathIgnorePatterns=integration.test.js",
     "test:integration": "jest --testMatch='**/__tests__/**/integration.test.js' --runInBand",
-    "test:ci": "jest --ci --coverage --runInBand --forceExit",
+    "test:ci": "jest --ci --coverage --runInBand --forceExit --testPathIgnorePatterns=integration.test.js",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "format": "prettier --write \"**/*.js\"",
