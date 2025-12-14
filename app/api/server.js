@@ -304,7 +304,7 @@ app.post('/api/transactions', async (req, res) => {
 
     // Get account
     const accountResult = await client.query(
-      'SELECT id, balance FROM accounts WHERE account_number = $1 FOR UPDATE',
+      'SELECT a.id, a.balance FROM accounts a WHERE a.account_number = $1 FOR UPDATE',
       [accountNumber]
     );
 
@@ -431,7 +431,7 @@ app.post('/api/transfers', async (req, res) => {
 
     // Get both accounts with row locks
     const accountsResult = await client.query(
-      'SELECT id, account_number, balance FROM accounts WHERE account_number = ANY($1) FOR UPDATE',
+      'SELECT a.id, a.account_number, a.balance FROM accounts a WHERE a.account_number = ANY($1) FOR UPDATE',
       [[fromAccount, toAccount]]
     );
 
