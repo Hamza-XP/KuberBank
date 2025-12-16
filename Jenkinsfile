@@ -401,7 +401,9 @@ pipeline {
         
         stage('Push to Registry') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH_NAME == 'main'
+                }
             }
             steps {
                 echo '========================================='
