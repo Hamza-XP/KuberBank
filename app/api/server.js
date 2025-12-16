@@ -302,9 +302,9 @@ app.post('/api/transactions', async (req, res) => {
     const start = Date.now();
     await client.query('BEGIN');
 
-    // Get account
+    // FIXED: Include overdraft_limit in SELECT to avoid ambiguous reference
     const accountResult = await client.query(
-      'SELECT a.id, a.balance FROM accounts a WHERE a.account_number = $1 FOR UPDATE',
+      'SELECT a.id, a.balance, a.overdraft_limit FROM accounts a WHERE a.account_number = $1 FOR UPDATE',
       [accountNumber]
     );
 
@@ -315,12 +315,14 @@ app.post('/api/transactions', async (req, res) => {
 
     const account = accountResult.rows[0];
     const currentBalance = parseFloat(account.balance);
+    const overdraftLimit = parseFloat(account.overdraft_limit || 0);
     let newBalance = currentBalance;
 
     if (type === 'deposit') {
       newBalance = currentBalance + amount;
     } else if (type === 'withdrawal') {
-      if (currentBalance < amount) {
+      // FIXED: Use the overdraftLimit variable we just extracted
+      if (currentBalance < amount && (currentBalance - amount) < -overdraftLimit) {
         await client.query('ROLLBACK');
         return res.status(400).json({ success: false, error: 'Insufficient funds' });
       }
@@ -429,9 +431,9 @@ app.post('/api/transfers', async (req, res) => {
     const start = Date.now();
     await client.query('BEGIN');
 
-    // Get both accounts with row locks
+    // FIXED: Include overdraft_limit to avoid potential ambiguous references
     const accountsResult = await client.query(
-      'SELECT a.id, a.account_number, a.balance FROM accounts a WHERE a.account_number = ANY($1) FOR UPDATE',
+      'SELECT a.id, a.account_number, a.balance, a.overdraft_limit FROM accounts a WHERE a.account_number = ANY($1) FOR UPDATE',
       [[fromAccount, toAccount]]
     );
 
