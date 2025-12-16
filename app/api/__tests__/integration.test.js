@@ -179,8 +179,8 @@ describe('KuberBank API Integration Tests', () => {
       expect(response.body.data.length).toBeGreaterThanOrEqual(3); // initial + deposit + withdrawal
 
       const transactions = response.body.data;
-      const deposit = transactions.find(t => t.type === 'deposit' && t.amount === 500);
-      const withdrawal = transactions.find(t => t.type === 'withdrawal' && t.amount === 300);
+      const deposit = transactions.find(t => t.type === 'deposit' && Number(t.amount) === 500);
+      const withdrawal = transactions.find(t => t.type === 'withdrawal' && Number(t.amount) === 300);
 
       expect(deposit).toBeDefined();
       expect(withdrawal).toBeDefined();
@@ -254,10 +254,10 @@ describe('KuberBank API Integration Tests', () => {
       const txHistory2 = await request(app).get(`/api/accounts/${account2}/transactions`);
 
       const withdrawal = txHistory1.body.data.find(
-        t => t.type === 'withdrawal' && t.amount === 750
+        t => t.type === 'withdrawal' && Number(t.amount) === 750
       );
       const deposit = txHistory2.body.data.find(
-        t => t.type === 'deposit' && t.amount === 750
+        t => t.type === 'deposit' && Number(t.amount) === 750
       );
 
       expect(withdrawal).toBeDefined();
