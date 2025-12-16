@@ -400,25 +400,26 @@ pipeline {
         }
         
         stage('Push to Registry') {
-            when {
-                expression {
-                    env.BRANCH_NAME == 'main'
-                }
-            }
             steps {
                 echo '========================================='
                 echo '   📤 Pushing to Docker Hub...'
                 echo '========================================='
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-registry-credentials') {
-                        sh """
-                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                            docker push ${IMAGE_NAME}:latest
-                            
-                            echo "✓ Images pushed to Docker Hub:"
-                            echo "  - ${IMAGE_NAME}:${IMAGE_TAG}"
-                            echo "  - ${IMAGE_NAME}:latest"
-                        """
+                    def branch = sh(
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    if (branch == 'main') {
+                        echo "On main branch — pushing image"
+                        docker.withRegistry('https://registry.hub.docker.com', 'docker-registry-credentials') {
+                            sh '''
+                                docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                                docker push ${IMAGE_NAME}:latest
+                            '''
+                        }
+                    } else {
+                        echo "Not on main branch (${branch}) — skipping push"
                     }
                 }
             }
