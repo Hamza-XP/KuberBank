@@ -307,8 +307,8 @@ DECLARE
     overdraft_limit DECIMAL(15, 2);
 BEGIN
     IF NEW.type IN ('withdrawal', 'transfer') THEN
-        SELECT balance, overdraft_limit INTO current_balance, overdraft_limit
-        FROM accounts WHERE id = NEW.account_id;
+        SELECT a.balance, a.overdraft_limit INTO current_balance, overdraft_limit
+        FROM accounts a WHERE a.id = NEW.account_id;
         
         IF (current_balance - NEW.amount) < -overdraft_limit THEN
             RAISE EXCEPTION 'Insufficient funds: balance=%, amount=%, overdraft=%', 
