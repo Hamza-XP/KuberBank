@@ -65,12 +65,12 @@ docker exec test-postgres \
 
 ### Stage 5: Build Test Image
 ```bash
-docker build --target base -t kuberbank/backend:test .
+docker build --target base -t hamzaxp/kuberbank-backend:test .
 ```
 
 ### Stage 6: Code Quality - Linting
 ```bash
-docker run --rm kuberbank/backend:test npm run lint
+docker run --rm hamzaxp/kuberbank-backend:test npm run lint
 ```
 
 ### Stage 7: Unit Tests
@@ -78,7 +78,7 @@ docker run --rm kuberbank/backend:test npm run lint
 docker run --rm \
   --network kuberbank-test-${BUILD_NUMBER} \
   -v ${WORKSPACE}/coverage:/app/coverage \
-  kuberbank/backend:test \
+  hamzaxp/kuberbank-backend:test \
   npm run test:unit --coverage
 ```
 
@@ -87,32 +87,32 @@ docker run --rm \
 docker run --rm \
   --network kuberbank-test-${BUILD_NUMBER} \
   -e TEST_DB_HOST=test-postgres \
-  kuberbank/backend:test \
+  hamzaxp/kuberbank-backend:test \
   npm run test:integration
 ```
 
 ### Stage 9: Build Production Image
 ```bash
-docker build --target production -t kuberbank/backend:latest .
+docker build --target production -t hamzaxp/kuberbank-backend:latest .
 ```
 
 ### Stage 10: Test Production Image
 ```bash
-docker run -d kuberbank/backend:latest
+docker run -d hamzaxp/kuberbank-backend:latest
 # Test health endpoint
 curl http://localhost:3000/health
 ```
 
 ### Stage 11: Security Scan
 ```bash
-trivy image --severity HIGH,CRITICAL kuberbank/backend:latest
+trivy image --severity HIGH,CRITICAL hamzaxp/kuberbank-backend:latest
 npm audit --production
 ```
 
 ### Stage 12: Push to Registry (main branch only)
 ```bash
-docker push kuberbank/backend:abc1234
-docker push kuberbank/backend:latest
+docker push hamzaxp/kuberbank-backend:abc1234
+docker push hamzaxp/kuberbank-backend:latest
 ```
 
 ### Stage 13: Tag Release (main branch only)
@@ -122,7 +122,7 @@ git tag -a v1.0.${BUILD_NUMBER}
 
 ### Stage 14: Update Manifests (main branch only)
 ```bash
-sed -i 's|image:.*|image: kuberbank/backend:abc1234|' k8s/backend/deployment.yaml
+sed -i 's|image:.*|image: hamzaxp/kuberbank-backend:abc1234|' k8s/backend/deployment.yaml
 ```
 
 ### Stage 15: Cleanup (always runs)
@@ -376,8 +376,8 @@ This runs exactly what Jenkins does.
        ▼
 ┌─────────────────────────────────┐
 │  Push to Docker Hub             │
-│  - kuberbank/backend:abc1234    │
-│  - kuberbank/backend:latest     │
+│  - hamzaxp/kuberbank-backend:abc1234    │
+│  - hamzaxp/kuberbank-backend:latest     │
 └──────┬──────────────────────────┘
        │
        ▼
@@ -411,7 +411,7 @@ This runs exactly what Jenkins does.
 Jenkins sets these automatically:
 
 ```groovy
-IMAGE_NAME = "kuberbank/backend"
+IMAGE_NAME = "hamzaxp/kuberbank-backend"
 IMAGE_TAG = "${GIT_COMMIT.take(7)}"
 BUILD_NUMBER = "123"  // Jenkins build number
 DOCKER_NETWORK = "kuberbank-test-${BUILD_NUMBER}"
@@ -482,7 +482,7 @@ Success:
 Project: KuberBank Backend
 Branch: main
 Commit: abc1234
-Image: kuberbank/backend:abc1234
+Image: hamzaxp/kuberbank-backend:abc1234
 Tests: All Passed ✓
 ```
 
