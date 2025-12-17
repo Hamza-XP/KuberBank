@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Docker configuration
         DOCKER_REGISTRY = credentials('docker-registry-credentials')
-        IMAGE_NAME = "kuberbank/backend"
+        IMAGE_NAME = "hamzaxp/kuberbank-backend"
         IMAGE_TAG = "${env.GIT_COMMIT?.take(7) ?: 'latest'}"
         
         // Test database configuration
