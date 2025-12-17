@@ -409,17 +409,19 @@ pipeline {
                 echo '========================================='
                 echo '   📤 Pushing to Docker Hub...'
                 echo '========================================='
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-registry-credentials') {
-                        sh """
-                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                            docker push ${IMAGE_NAME}:latest
-                            
-                            echo "✓ Images pushed to Docker Hub:"
-                            echo "  - ${IMAGE_NAME}:${IMAGE_TAG}"
-                            echo "  - ${IMAGE_NAME}:latest"
-                        """
-                    }
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'docker-registry-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:latest
+                        docker logout
+                    '''
                 }
             }
         }
