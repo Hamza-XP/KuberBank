@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kuberbank-backend-pdb
+  namespace: kuberbank
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: kuberbank-backend
