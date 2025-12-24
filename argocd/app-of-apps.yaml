@@ -1,0 +1,321 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: argocd/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# Infrastructure Apps
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-infrastructure
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/infrastructure
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberbank
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  syncWaves:
+    - order: 0
+
+---
+# PostgreSQL Database
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-database
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/postgres
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberbank
+  syncPolicy:
+    automated:
+      prune: false  # Never auto-prune database resources
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: acid.zalan.do
+      kind: postgresql
+      jsonPointers:
+        - /spec/numberOfInstances
+
+---
+# Secrets Management (External Secrets Operator)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-secrets
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/secrets
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberbank
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# Monitoring Stack (Prometheus, Grafana, Loki)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# Backend API Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-backend
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "kuberbank-deployments"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/backend
+    helm:
+      releaseName: kuberbank-backend
+      values: |
+        replicaCount: 3
+        image:
+          repository: kuberbank/backend
+          pullPolicy: Always
+          tag: "latest"
+        
+        service:
+          type: ClusterIP
+          port: 3000
+        
+        ingress:
+          enabled: true
+          className: nginx
+          annotations:
+            cert-manager.io/cluster-issuer: "letsencrypt-prod"
+            nginx.ingress.kubernetes.io/rate-limit: "100"
+          hosts:
+            - host: api.kuberbank.io
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+            - secretName: kuberbank-api-tls
+              hosts:
+                - api.kuberbank.io
+        
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        
+        autoscaling:
+          enabled: true
+          minReplicas: 3
+          maxReplicas: 10
+          targetCPUUtilizationPercentage: 70
+          targetMemoryUtilizationPercentage: 80
+        
+        env:
+          - name: NODE_ENV
+            value: "production"
+          - name: DB_HOST
+            value: "pgbouncer-service"
+          - name: DB_PORT
+            value: "5432"
+          - name: DB_NAME
+            value: "kuberbank"
+          - name: DB_USER
+            value: "bankuser"
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-credentials
+                key: password
+          - name: DB_SSL
+            value: "true"
+          - name: LOG_LEVEL
+            value: "info"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        
+        podAnnotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "3000"
+          prometheus.io/path: "/metrics"
+        
+        podSecurityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          fsGroup: 1000
+        
+        networkPolicy:
+          enabled: true
+          policyTypes:
+            - Ingress
+            - Egress
+          ingress:
+            - from:
+                - namespaceSelector:
+                    matchLabels:
+                      name: ingress-nginx
+          egress:
+            - to:
+                - namespaceSelector:
+                    matchLabels:
+                      name: kuberbank
+                ports:
+                  - protocol: TCP
+                    port: 5432
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberbank
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        maxDuration: 1m
+
+---
+# Frontend Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-frontend
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberbank
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# Network Policies
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberbank-network-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Hamza-XP/KuberBank
+    targetRevision: main
+    path: kubernetes/network-policies
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberbank
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
