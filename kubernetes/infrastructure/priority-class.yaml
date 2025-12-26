@@ -1,0 +1,25 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: database-critical
+value: 1000000
+globalDefault: false
+description: "Critical database workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: application-high
+value: 10000
+globalDefault: false
+description: "High priority application workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: application-normal
+value: 1000
+globalDefault: true
+description: "Normal priority application workloads"
