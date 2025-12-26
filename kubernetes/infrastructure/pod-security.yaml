@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-security-standards
+  namespace: kuberbank
+data:
+  enforce: "restricted"
+  audit: "restricted"
+  warn: "restricted"
