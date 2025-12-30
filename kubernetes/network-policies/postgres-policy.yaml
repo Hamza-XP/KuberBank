@@ -1,0 +1,119 @@
+# PostgreSQL ingress policy - highly restrictive
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      application: kuberbank-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from backend API
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kuberbank-backend
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow from PgBouncer
+    - from:
+        - podSelector:
+            matchLabels:
+              connection-pooler: kuberbank-postgres-pooler
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow postgres-to-postgres for replication
+    - from:
+        - podSelector:
+            matchLabels:
+              application: kuberbank-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow Prometheus scraping postgres-exporter
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9187
+    
+    # Allow from backup jobs
+    - from:
+        - podSelector:
+            matchLabels:
+              job: postgres-backup
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow from restore jobs
+    - from:
+        - podSelector:
+            matchLabels:
+              job: postgres-restore
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# PostgreSQL egress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-egress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      application: kuberbank-postgres
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow postgres-to-postgres for replication
+    - to:
+        - podSelector:
+            matchLabels:
+              application: kuberbank-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow S3 backup (HTTPS)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    
+    # Allow connection to Vault for certificate rotation
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: vault
+      ports:
+        - protocol: TCP
+          port: 8200
