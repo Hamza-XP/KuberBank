@@ -1,0 +1,37 @@
+# Allow backup jobs to access database and S3
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backup-jobs-egress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      job: postgres-backup
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    
+    # Allow database connection
+    - to:
+        - podSelector:
+            matchLabels:
+              application: kuberbank-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow S3 (HTTPS)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
