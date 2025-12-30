@@ -1,0 +1,75 @@
+# PgBouncer ingress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pgbouncer-ingress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      connection-pooler: kuberbank-postgres-pooler
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from backend API only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kuberbank-backend
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow from migration jobs
+    - from:
+        - podSelector:
+            matchLabels:
+              job: database-migration
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow Prometheus monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9127
+
+---
+# PgBouncer egress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pgbouncer-egress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      connection-pooler: kuberbank-postgres-pooler
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    
+    # Allow connection to PostgreSQL only
+    - to:
+        - podSelector:
+            matchLabels:
+              application: kuberbank-postgres
+              spilo-role: master
+      ports:
+        - protocol: TCP
+          port: 5432
