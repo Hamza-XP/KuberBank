@@ -1,0 +1,113 @@
+# Backend API ingress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-ingress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      app: kuberbank-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+    
+    # Allow Prometheus scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 3000
+    
+    # Allow from frontend
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kuberbank-frontend
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# Backend API egress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-egress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      app: kuberbank-backend
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow connection to PostgreSQL/PgBouncer
+    - to:
+        - podSelector:
+            matchLabels:
+              application: kuberbank-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    - to:
+        - podSelector:
+            matchLabels:
+              connection-pooler: kuberbank-postgres-pooler
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow HTTPS to external services (APIs, webhooks)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    
+    # Allow HTTP to external services
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+    
+    # Allow connection to Vault for secrets
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: vault
+        - podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - protocol: TCP
+          port: 8200
