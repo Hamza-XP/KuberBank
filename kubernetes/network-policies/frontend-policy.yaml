@@ -1,0 +1,53 @@
+# Frontend ingress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-ingress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      app: kuberbank-frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+
+---
+# Frontend egress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-egress
+  namespace: kuberbank
+spec:
+  podSelector:
+    matchLabels:
+      app: kuberbank-frontend
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    
+    # Allow connection to backend API
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kuberbank-backend
+      ports:
+        - protocol: TCP
+          port: 3000
